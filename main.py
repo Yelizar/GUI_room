@@ -3,8 +3,11 @@ from kivy.app import App
 from kivy.uix.image import Image
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
 
 import cv2
+import numpy as np
 import os, sys
 
 def cvt_gray(image):
@@ -12,25 +15,66 @@ def cvt_gray(image):
     return gray
 
 
-class ImgReader():
+class ImgReader(BoxLayout):
     """return processed pictures"""
-    def __init__(self):
-        self.img_pack = []
+    def __init__(self, **kwargs):
+        super(ImgReader, self).__init__(**kwargs)
+        self.img_pack = self.find_img()
+        print(self.img_pack[0])
 
     def find_img(self):
-        """creat a list of images"""
-        #find right oath to the folder with images
-        profect_dir = os.path.expanduser('~')
+        """create a list of images and return it"""
+        #find right path to the folder with images
+        profect_dir = os.path.curdir
         glasses_dir = os.path.join(profect_dir, 'glasses')
+        #format of path ---> current directory \ glasses folder \ image name
+        img_pack = [glasses_dir+'\\'+img for img in os.listdir(glasses_dir) \
+                         if os.path.isfile(os.path.join(glasses_dir, img))]
+        return img_pack
+
+    def png_reader(self, image):
+        """This method is processing png image with alpha channel and return it in correct format"""
+        # split image on two alpha and rgb channel
+        alpha_cnl = image[:,:,3]
+        rgb_cnl = image[:,:,:3]
+        # White Background Image
+        white_background_image = np.ones_like(rgb_cnl, dtype=np.uint8) * 255
+        # Alpha factor
+        alpha_factor = alpha_cnl[:, :, np.newaxis].astype(np.float32) / 255
+        alpha_factor = np.concatenate((alpha_factor, alpha_factor, alpha_factor), axis=2)
+        # Transparent Image Rendered on White Background
+        base = rgb_cnl.astype(np.float32) + (1 - alpha_factor)
+        white = white_background_image.astype(np.float32) * (1 - alpha_factor)
+        white = rgb_cnl * (1 - white)
+        final_image = base + white
+        print('1')
+        return final_image.astype(np.uint8)
+
+    def img_read(self):
+        image = cv2.imread(str(self.img_pack[0]), cv2.IMREAD_UNCHANGED)
+        glasses = self.png_reader(image)
+        return glasses
+        # else:
+        #     print('Error')
+
+    def right_btn(self):
+        self.cur_img = self.cur_img + 1
+        self.img_read()
 
 
 
 class Camera(Image):
     def __init__(self, capture, fps, **kwargs):
         super(Camera, self).__init__(**kwargs)
+        self.image = ImgReader()
         self.capture = capture
         self.face_cascade = cv2.CascadeClassifier('face.xml')
         Clock.schedule_interval(self.update, 1.0 / fps)
+
+    def resize_image(self, image, width, height):
+        """This method returns modified image with the size of the face """
+        modified_image = cv2.resize(image, dsize=(width, height))
+        return modified_image
 
     def update(self, dt):
         """processing video frames"""
@@ -47,6 +91,10 @@ class Camera(Image):
                 crd_face = frame[y:y+h,x:x+w]
                 cuted_face = crd_face
                 cuted_gray_face = frame_gray[y:y+h,x:x+w]
+                #get image
+                glasses = self.image.img_read()
+                #resize image in accordance with the size of the face
+
 
 
             # convert it to texture
@@ -67,6 +115,7 @@ class Main(App):
         self.capture = cv2.VideoCapture(0)
         self.my_camera = Camera(capture=self.capture, fps=30)
         return self.my_camera
+
 
     def on_stop(self):
         #without this, app will not exit even if the window is closed
