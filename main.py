@@ -1,14 +1,22 @@
 #made_by_Lazarus_Rai
+import kivy
+kivy.require('1.10.0')
+
 from kivy.app import App
 from kivy.uix.image import Image
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
+from kivy.lang import Builder
+
+from itertools import cycle
 
 import cv2
 import numpy as np
 import os, sys
+
+
 
 def cvt_gray(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -20,7 +28,12 @@ class ImgReader(BoxLayout):
     def __init__(self, **kwargs):
         super(ImgReader, self).__init__(**kwargs)
         self.img_pack = self.find_img()
-        print(self.img_pack[0])
+        layout = BoxLayout(orientation='vertical')
+        btn1 = Button(text='Hello')
+        btn2 = Button(text='World')
+        layout.add_widget(btn1)
+        layout.add_widget(btn2)
+
 
     def find_img(self):
         """create a list of images and return it"""
@@ -30,6 +43,7 @@ class ImgReader(BoxLayout):
         #format of path ---> current directory \ glasses folder \ image name
         img_pack = [glasses_dir+'\\'+img for img in os.listdir(glasses_dir) \
                          if os.path.isfile(os.path.join(glasses_dir, img))]
+        print(img_pack)
         return img_pack
 
     def png_reader(self, image):
@@ -49,25 +63,52 @@ class ImgReader(BoxLayout):
         final_image = base + white
         return final_image.astype(np.uint8)
 
-    def img_read(self):
-        image = cv2.imread(str(self.img_pack[0]), cv2.IMREAD_UNCHANGED)
+    def img_read(self, rqs_img):
+        if rqs_img:
+            image = cv2.imread(str(rqs_img), cv2.IMREAD_UNCHANGED)
+        else:
+            image = cv2.imread(str(self.img_pack[0]), cv2.IMREAD_UNCHANGED)
         glasses = self.png_reader(image)
         return glasses
 
 
     def right_btn(self):
-        self.cur_img = self.cur_img + 1
-        self.img_read()
+        image_cycle = cycle(self.img_pack)
+        next_image = next(image_cycle)
+        print(next_image)
+
+    def left_btn(self):
+        pass
 
 
-
-class Camera(Image):
+class Screen(Image):
     def __init__(self, capture, fps, **kwargs):
-        super(Camera, self).__init__(**kwargs)
+        super(Screen, self).__init__(**kwargs)
         self.image = ImgReader()
         self.capture = capture
         self.face_cascade = cv2.CascadeClassifier('face.xml')
         Clock.schedule_interval(self.update, 1.0 / fps)
+
+        # ^Button PREVIOUS
+        self.previous = Button(text='Previous',
+                               pos=(0,300),
+                               size=(80, 80),
+                               size_hint=(None, None),
+                               background_color=(0,0,10,0.1)
+                               )
+        # self.previous.bind(on_press=ImgReader.right_btn)
+        Screen.add_widget(self, self.previous)
+        # $
+        # ^Button NEXT
+        self.next = Button(text='Next',
+                           pos=(720,300),
+                           size=(80, 80),
+                           size_hint=(None, None),
+                           background_color=(0,0,10,0.1)
+                           )
+        self.next.bind(on_press=ImgReader.right_btn)
+        Screen.add_widget(self, self.next)
+        # $
 
     def resize_image(self, image, width, height):
         """This method returns modified image with the size of the face """
@@ -95,7 +136,7 @@ class Camera(Image):
                 #cut face from the frame for further work
                 cuted_face = frame[y:y+h,x:x+w]
                 #get image
-                image = self.image.img_read()
+                image = self.image.img_read(None)
                 #resize image in accordance with the size of the face
                 image = self.resize_image(image, w, h)
 
@@ -123,7 +164,8 @@ class Main(App):
 
     def build(self):
         self.capture = cv2.VideoCapture(0)
-        self.my_camera = Camera(capture=self.capture, fps=30)
+        self.my_camera = Screen(capture=self.capture, fps=30)
+
         return self.my_camera
 
 
