@@ -47,15 +47,13 @@ class ImgReader(BoxLayout):
         white = white_background_image.astype(np.float32) * (1 - alpha_factor)
         white = rgb_cnl * (1 - white)
         final_image = base + white
-        print('1')
         return final_image.astype(np.uint8)
 
     def img_read(self):
         image = cv2.imread(str(self.img_pack[0]), cv2.IMREAD_UNCHANGED)
         glasses = self.png_reader(image)
         return glasses
-        # else:
-        #     print('Error')
+
 
     def right_btn(self):
         self.cur_img = self.cur_img + 1
@@ -76,6 +74,13 @@ class Camera(Image):
         modified_image = cv2.resize(image, dsize=(width, height))
         return modified_image
 
+    def masks_of_image(self, image):
+        """This method convert image from RGB to GRAY and return mask and inversion of the image"""
+        image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        ret, mask = cv2.threshold(image_gray, 0, 254, cv2.THRESH_BINARY)
+        mask_inv = cv2.bitwise_not(mask)
+        return mask, mask_inv
+
     def update(self, dt):
         """processing video frames"""
         ret, frame = self.capture.read()
@@ -88,20 +93,25 @@ class Camera(Image):
             for (x, y, w, h) in self.face:
                 cv2.rectangle(frame, (x, y), (x + w, y + (h // 2)), (255, 255, 0), 2)
                 #cut face from the frame for further work
-                crd_face = frame[y:y+h,x:x+w]
-                cuted_face = crd_face
-                cuted_gray_face = frame_gray[y:y+h,x:x+w]
+                cuted_face = frame[y:y+h,x:x+w]
                 #get image
-                glasses = self.image.img_read()
+                image = self.image.img_read()
                 #resize image in accordance with the size of the face
+                image = self.resize_image(image, w, h)
 
+                #create mask and inversion mask of the image
+                mask, mask_inv = self.masks_of_image(image)
 
+                #add image to frame
+                frame_bg = cv2.bitwise_and(cuted_face, cuted_face, mask=mask)
+                image_fg = cv2.bitwise_and(image, image, mask=mask_inv)
+                image = cv2.add(frame_bg, image_fg)
+                frame[y:y + h, x:x + w] = image
 
             # convert it to texture
             buf1 = cv2.flip(frame, -1)
             buf = buf1.tostring()
-            image_texture = Texture.create(
-                size=(frame.shape[1], frame.shape[0]), colorfmt='bgr')
+            image_texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='bgr')
             image_texture.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
             # display image from the texture
             self.texture = image_texture
