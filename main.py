@@ -28,12 +28,26 @@ class ImgReader(BoxLayout):
     def __init__(self, **kwargs):
         super(ImgReader, self).__init__(**kwargs)
         self.img_pack = self.find_img()
-        layout = BoxLayout(orientation='vertical')
-        btn1 = Button(text='Hello')
-        btn2 = Button(text='World')
-        layout.add_widget(btn1)
-        layout.add_widget(btn2)
-
+        # ^Button PREVIOUS
+        self.previous = Button(text='Previous',
+                               pos=(0, 260),
+                               size=(80, 80),
+                               size_hint=(None, None),
+                               background_color=(10, 10, 10, 0.1)
+                               )
+        # self.previous.bind(on_press=ImgReader.right_btn)
+        ImgReader.add_widget(self, self.previous)
+        # $
+        # ^Button NEXT
+        self.next = Button(text='Next',
+                           pos=(0, 0),
+                           size=(80, 80),
+                           size_hint=(None, None),
+                           background_color=(10, 10, 10, 0.1)
+                           )
+        self.next.bind(on_press=self.right_btn)
+        ImgReader.add_widget(self, self.next)
+        # $
 
     def find_img(self):
         """create a list of images and return it"""
@@ -63,7 +77,7 @@ class ImgReader(BoxLayout):
         final_image = base + white
         return final_image.astype(np.uint8)
 
-    def img_read(self, rqs_img):
+    def img_read(self, rqs_img, *args):
         if rqs_img:
             image = cv2.imread(str(rqs_img), cv2.IMREAD_UNCHANGED)
         else:
@@ -72,10 +86,11 @@ class ImgReader(BoxLayout):
         return glasses
 
 
-    def right_btn(self):
+    def right_btn(self,  *args):
         image_cycle = cycle(self.img_pack)
         next_image = next(image_cycle)
         print(next_image)
+        self.img_read(next_image)
 
     def left_btn(self):
         pass
@@ -88,27 +103,8 @@ class Screen(Image):
         self.capture = capture
         self.face_cascade = cv2.CascadeClassifier('face.xml')
         Clock.schedule_interval(self.update, 1.0 / fps)
+        self.add_widget(self.image)
 
-        # ^Button PREVIOUS
-        self.previous = Button(text='Previous',
-                               pos=(0,300),
-                               size=(80, 80),
-                               size_hint=(None, None),
-                               background_color=(0,0,10,0.1)
-                               )
-        # self.previous.bind(on_press=ImgReader.right_btn)
-        Screen.add_widget(self, self.previous)
-        # $
-        # ^Button NEXT
-        self.next = Button(text='Next',
-                           pos=(720,300),
-                           size=(80, 80),
-                           size_hint=(None, None),
-                           background_color=(0,0,10,0.1)
-                           )
-        self.next.bind(on_press=ImgReader.right_btn)
-        Screen.add_widget(self, self.next)
-        # $
 
     def resize_image(self, image, width, height):
         """This method returns modified image with the size of the face """
@@ -159,7 +155,7 @@ class Screen(Image):
 
 
 
-class Main(App):
+class Main(App, BoxLayout):
 
 
     def build(self):
