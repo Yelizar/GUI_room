@@ -10,7 +10,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.lang import Builder
 
-from itertools import cycle
+from itertools import cycle, tee, islice, chain, zip_longest
 
 import cv2
 import numpy as np
@@ -22,7 +22,7 @@ class ImgReader(BoxLayout):
     def __init__(self, **kwargs):
         super(ImgReader, self).__init__(**kwargs)
         self.img_pack = self.find_img()
-        self.crt_image = None
+
         # ^Button PREVIOUS
         self.previous = Button(text='Previous',
                                pos=(0, 260),
@@ -50,9 +50,16 @@ class ImgReader(BoxLayout):
         profect_dir = os.path.curdir
         glasses_dir = os.path.join(profect_dir, 'glasses')
         #format of path ---> current directory \ glasses folder \ image name
-        img_pack = [glasses_dir+'\\'+img for img in os.listdir(glasses_dir) \
+        pack = [glasses_dir+'\\'+img for img in os.listdir(glasses_dir) \
                          if os.path.isfile(os.path.join(glasses_dir, img))]
+        img_pack = self.iter_list(pack)
         return img_pack
+
+    def cycle_list(self, pack):
+        prevs, item, nexts = tee(pack, 3)
+        prevs = chain([None], prevs)
+        nexts = chain(islice(nexts, 1, None), [None])
+        return zip_longest(prevs, item, nexts)
 
     def png_reader(self, image):
         """This method is processing png image with alpha channel and return it in correct format"""
@@ -73,7 +80,6 @@ class ImgReader(BoxLayout):
             final_image = base + white
             return final_image.astype(np.uint8)
         else:
-            print('1')
             return image
 
     def cvt_gray(self, image):
@@ -84,46 +90,58 @@ class ImgReader(BoxLayout):
     def img_read(self, rqs_img, *args):
         """This method gets an image's path and returns processed picture"""
         if rqs_img:
+            print(rqs_img, self.crt_image)
             image = cv2.imread(str(rqs_img), cv2.IMREAD_UNCHANGED)
         else:
             image = cv2.imread(str(self.img_pack[0]), cv2.IMREAD_UNCHANGED)
             self.crt_image = self.img_pack.index('.\\glasses\\glasses_1.png')
-            print(self.crt_image)
-        glasses = self.png_reader(image)
-        return glasses
-
+        image = self.png_reader(image)
+        return image
 
     def right_btn(self,  *args):
+        _, item, self.crt_image = self.iter_list(self.img_pack)
+        print(_, item, self.crt_image)
+        pass
+        # image_cycle = cycle(self.img_pack)
+        # next_image = next(image_cycle)
+        # self.crt_image =  next(image_cycle)
+        # self.img_read(self.crt_image)
+        # print(self.crt_image, next_image)
+
+    def left_btn(self, *args):
         image_cycle = cycle(self.img_pack)
         next_image = next(image_cycle)
-        print(next_image)
-        self.img_read('.\\glasses\\glasses_2.png')
+        self.crt_image = next(image_cycle)
+        self.img_read(self.crt_image)
+        print(self.crt_image, next_image)
 
-    def left_btn(self):
-        pass
 
 
 class Screen(Image):
+    """Outputs screen"""
     def __init__(self, capture, fps, **kwargs):
         super(Screen, self).__init__(**kwargs)
         self.img_reader = ImgReader()
         self.crt_image = self.img_reader.crt_image
+        self.prc_crt_image = None
         self.capture = capture
         self.face_cascade = cv2.CascadeClassifier('face.xml')
-        Clock.schedule_interval(self.update, 1.0 / fps)
         self.add_widget(self.img_reader)
+        Clock.schedule_interval(self.update, 1.0 / fps)
 
-    def img_verification(self, crt_image):
+    def img_verification(self):
         """"""
-        # get image
-        if self.img_reader.crt_image == crt_image:
+        if self.crt_image is None:
+            print('2')
+            self.prc_crt_image = self.img_reader.img_read(None)
+            self.crt_image = self.img_reader.crt_image
+        elif self.crt_image is self.img_reader.crt_image:
             pass
-        if self.img_reader.crt_image is None:
-            image = self.img_reader.img_read(None)
-            return image
         else:
-            image = self.img_reader.img_read(self.img_reader)
-            return image
+            print('1')
+            self.crt_image = self.img_reader.crt_image
+            self.prc_crt_image = self.img_reader.img_read(self.crt_image)
+        return self.prc_crt_image
 
     def resize_image(self, image, width, height):
         """This method returns modified image with the size of the face """
@@ -149,7 +167,7 @@ class Screen(Image):
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 255, 0), 2)
                 #cut face from the frame for further work
                 cuted_face = frame[y:y+h,x:x+w]
-                image = self.img_verification(self.crt_image)
+                image = self.img_verification()
                 #resize image in accordance with the size of the face
                 image = self.resize_image(image, w, h)
 
@@ -178,7 +196,6 @@ class Main(App, BoxLayout):
     def build(self):
         self.capture = cv2.VideoCapture(0)
         self.my_camera = Screen(capture=self.capture, fps=30)
-
         return self.my_camera
 
 
