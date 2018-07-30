@@ -22,6 +22,9 @@ class ImgReader(BoxLayout):
     def __init__(self, **kwargs):
         super(ImgReader, self).__init__(**kwargs)
         self.img_pack = self.find_img()
+        self.point = 0
+        self.crt_image = None
+        self.movement_point(None)
 
         # ^Button PREVIOUS
         self.previous = Button(text='Previous',
@@ -30,7 +33,7 @@ class ImgReader(BoxLayout):
                                size_hint=(None, None),
                                background_color=(10, 10, 10, 0.1)
                                )
-        self.previous.bind(on_press=ImgReader.right_btn)
+        self.previous.bind(on_press=self.left_btn)
         ImgReader.add_widget(self, self.previous)
         # $
         # ^Button NEXT
@@ -52,14 +55,21 @@ class ImgReader(BoxLayout):
         #format of path ---> current directory \ glasses folder \ image name
         pack = [glasses_dir+'\\'+img for img in os.listdir(glasses_dir) \
                          if os.path.isfile(os.path.join(glasses_dir, img))]
-        img_pack = self.iter_list(pack)
-        return img_pack
+        return pack
 
-    def cycle_list(self, pack):
-        prevs, item, nexts = tee(pack, 3)
-        prevs = chain([None], prevs)
-        nexts = chain(islice(nexts, 1, None), [None])
-        return zip_longest(prevs, item, nexts)
+    def movement_point(self, diff, *args):
+        """This method changes the index of the image being processed"""
+        if diff:
+            self.point += diff
+            if len(self.img_pack) <= self.point:
+                self.point = 0
+            elif self.point < 0:
+                self.point = (len(self.img_pack) - 1)
+            self.crt_image = self.img_pack[self.point]
+        else:
+            self.crt_image = self.img_pack[self.point]
+
+
 
     def png_reader(self, image):
         """This method is processing png image with alpha channel and return it in correct format"""
@@ -90,7 +100,6 @@ class ImgReader(BoxLayout):
     def img_read(self, rqs_img, *args):
         """This method gets an image's path and returns processed picture"""
         if rqs_img:
-            print(rqs_img, self.crt_image)
             image = cv2.imread(str(rqs_img), cv2.IMREAD_UNCHANGED)
         else:
             image = cv2.imread(str(self.img_pack[0]), cv2.IMREAD_UNCHANGED)
@@ -99,21 +108,10 @@ class ImgReader(BoxLayout):
         return image
 
     def right_btn(self,  *args):
-        _, item, self.crt_image = self.iter_list(self.img_pack)
-        print(_, item, self.crt_image)
-        pass
-        # image_cycle = cycle(self.img_pack)
-        # next_image = next(image_cycle)
-        # self.crt_image =  next(image_cycle)
-        # self.img_read(self.crt_image)
-        # print(self.crt_image, next_image)
+        self.movement_point(1)
 
     def left_btn(self, *args):
-        image_cycle = cycle(self.img_pack)
-        next_image = next(image_cycle)
-        self.crt_image = next(image_cycle)
-        self.img_read(self.crt_image)
-        print(self.crt_image, next_image)
+        self.movement_point(-1)
 
 
 
@@ -130,15 +128,17 @@ class Screen(Image):
         Clock.schedule_interval(self.update, 1.0 / fps)
 
     def img_verification(self):
-        """"""
+        """This method checks which image should be processed"""
         if self.crt_image is None:
-            print('2')
             self.prc_crt_image = self.img_reader.img_read(None)
             self.crt_image = self.img_reader.crt_image
         elif self.crt_image is self.img_reader.crt_image:
-            pass
+            if self.prc_crt_image is not None:
+                pass
+            else:
+                self.prc_crt_image = self.img_reader.img_read(None)
+                self.crt_image = self.img_reader.crt_image
         else:
-            print('1')
             self.crt_image = self.img_reader.crt_image
             self.prc_crt_image = self.img_reader.img_read(self.crt_image)
         return self.prc_crt_image
@@ -164,12 +164,12 @@ class Screen(Image):
             self.face = self.face_cascade.detectMultiScale(frame_gray, 1.3, 5)
 
             for (x, y, w, h) in self.face:
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 255, 0), 2)
+                #cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 255, 0), 2)
                 #cut face from the frame for further work
-                cuted_face = frame[y:y+h,x:x+w]
+                cuted_face = frame[y+75:y+(h//2),x+20:x+w-20]
                 image = self.img_verification()
                 #resize image in accordance with the size of the face
-                image = self.resize_image(image, w, h)
+                image = self.resize_image(image, w-40, h//2-75)
 
                 #create mask and inversion mask of the image
                 image_gray = self.img_reader.cvt_gray(image)
@@ -179,7 +179,7 @@ class Screen(Image):
                 frame_bg = cv2.bitwise_and(cuted_face, cuted_face, mask=mask)
                 image_fg = cv2.bitwise_and(image, image, mask=mask_inv)
                 image = cv2.add(frame_bg, image_fg)
-                frame[y:y + h, x:x + w] = image
+                frame[y+75:y+(h//2), x+20:x + w-20] = image
 
             # convert it to texture
             buf1 = cv2.flip(frame, -1)
