@@ -90,7 +90,12 @@ class ImgReader(BoxLayout):
             final_image = base + white
             return final_image.astype(np.uint8)
         else:
-            return image
+            b_channel, g_channel, r_channel = cv2.split(image)
+
+            alpha_channel = np.ones(b_channel.shape, dtype=b_channel.dtype) * 50  # creating a dummy alpha channel image.
+
+            final_image = cv2.merge((r_channel, g_channel, b_channel, alpha_channel))
+            return final_image.astype(np.uint8)
 
     def cvt_gray(self, image):
         """This method converts image from RGB to GRAY"""
