@@ -91,11 +91,18 @@ class ImgReader(BoxLayout):
             return final_image.astype(np.uint8)
         else:
             b_channel, g_channel, r_channel = cv2.split(image)
+            white_background_image = np.ones_like(image, dtype=np.uint8) * 255
+            #create alpha channel for RGB/BGR image. once Alpha channel created, use it for alpha factor.
+            alpha_cnl = np.ones(b_channel.shape, dtype=np.uint8) * 1  # creating a dummy alpha channel image.
+            alpha_factor = alpha_cnl[:,:,np.newaxis].astype(np.float32) * 255
 
-            alpha_channel = np.ones(b_channel.shape, dtype=b_channel.dtype) * 50  # creating a dummy alpha channel image.
+            alpha_factor = np.concatenate((alpha_factor, alpha_factor, alpha_factor), axis=2)
+            base = image.astype(np.float32) - alpha_factor
+            white = white_background_image * (1 - alpha_factor)
+            white = image * (1 - white)
+            final_image = base + white
 
-            final_image = cv2.merge((r_channel, g_channel, b_channel, alpha_channel))
-            return final_image.astype(np.uint8)
+            return alpha_factor.astype(np.uint8)
 
     def cvt_gray(self, image):
         """This method converts image from RGB to GRAY"""
@@ -113,9 +120,11 @@ class ImgReader(BoxLayout):
         return image
 
     def right_btn(self,  *args):
+        """Switch images -->"""
         self.movement_point(1)
 
     def left_btn(self, *args):
+        """Switch images <--"""
         self.movement_point(-1)
 
 
