@@ -1,0 +1,8 @@
+#Lazarus_Rai
+Application provides users to try glasses, find the right shape and color.
+
+Version 0.1
+
+Added screen and buttons for switching between images
+Format images: RGB(white backgroud), RGBA
+Glasses change size according to a face
