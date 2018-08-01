@@ -1,4 +1,5 @@
 #made_by_Lazarus_Rai
+#Version 0.1
 import kivy
 kivy.require('1.10.0')
 
@@ -9,8 +10,6 @@ from kivy.graphics.texture import Texture
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.lang import Builder
-
-from itertools import cycle, tee, islice, chain, zip_longest
 
 import cv2
 import numpy as np
@@ -75,10 +74,11 @@ class ImgReader(BoxLayout):
         """This method is processing png image with alpha channel and return it in correct format"""
         rows, coloms, channels = image.shape
         if channels == 4:
+            """RGBA"""
             # split image on two alpha and rgb channel
             alpha_cnl = image[:,:,3]
             rgb_cnl = image[:,:,:3]
-            # White Background Image
+            #White Background Image
             white_background_image = np.ones_like(rgb_cnl, dtype=np.uint8) * 255
             # Alpha factor
             alpha_factor = alpha_cnl[:, :, np.newaxis].astype(np.float32) / 255
@@ -90,19 +90,12 @@ class ImgReader(BoxLayout):
             final_image = base + white
             return final_image.astype(np.uint8)
         else:
-            b_channel, g_channel, r_channel = cv2.split(image)
-            white_background_image = np.ones_like(image, dtype=np.uint8) * 255
+            """RGB with white background"""
             #create alpha channel for RGB/BGR image. once Alpha channel created, use it for alpha factor.
-            alpha_cnl = np.ones(b_channel.shape, dtype=np.uint8) * 1  # creating a dummy alpha channel image.
-            alpha_factor = alpha_cnl[:,:,np.newaxis].astype(np.float32) * 255
+            alpha_cnl = np.ones(image.shape, dtype=np.uint8) * 255
+            base = image.astype(np.float32) / alpha_cnl
+            return base.astype(np.uint8)
 
-            alpha_factor = np.concatenate((alpha_factor, alpha_factor, alpha_factor), axis=2)
-            base = image.astype(np.float32) - alpha_factor
-            white = white_background_image * (1 - alpha_factor)
-            white = image * (1 - white)
-            final_image = base + white
-
-            return alpha_factor.astype(np.uint8)
 
     def cvt_gray(self, image):
         """This method converts image from RGB to GRAY"""
