@@ -9,7 +9,6 @@ from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
-from kivy.lang import Builder
 
 import cv2
 import numpy as np
@@ -50,7 +49,8 @@ class ImgReader(BoxLayout):
         """create a list of images and return it"""
         #find right path to the folder with images
         profect_dir = os.path.curdir
-        glasses_dir = os.path.join(profect_dir, 'glasses')
+        data = os.path.join(profect_dir, 'data')
+        glasses_dir = os.path.join(data, 'glasses')
         #format of path ---> current directory \ glasses folder \ image name
         pack = [glasses_dir+'\\'+img for img in os.listdir(glasses_dir) \
                          if os.path.isfile(os.path.join(glasses_dir, img))]
@@ -67,8 +67,6 @@ class ImgReader(BoxLayout):
             self.crt_image = self.img_pack[self.point]
         else:
             self.crt_image = self.img_pack[self.point]
-
-
 
     def png_reader(self, image):
         """This method is processing png image with alpha channel and return it in correct format"""
@@ -96,7 +94,6 @@ class ImgReader(BoxLayout):
             base = image.astype(np.float32) / alpha_cnl
             return base.astype(np.uint8)
 
-
     def cvt_gray(self, image):
         """This method converts image from RGB to GRAY"""
         gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -108,7 +105,7 @@ class ImgReader(BoxLayout):
             image = cv2.imread(str(rqs_img), cv2.IMREAD_UNCHANGED)
         else:
             image = cv2.imread(str(self.img_pack[0]), cv2.IMREAD_UNCHANGED)
-            self.crt_image = self.img_pack.index('.\\glasses\\glasses_1.png')
+            self.crt_image = self.img_pack.index('.\\data\\glasses\\glasses_1.png')
         image = self.png_reader(image)
         return image
 
@@ -121,7 +118,6 @@ class ImgReader(BoxLayout):
         self.movement_point(-1)
 
 
-
 class Screen(Image):
     """Outputs screen"""
     def __init__(self, capture, fps, **kwargs):
@@ -130,7 +126,7 @@ class Screen(Image):
         self.crt_image = self.img_reader.crt_image
         self.prc_crt_image = None
         self.capture = capture
-        self.face_cascade = cv2.CascadeClassifier('face.xml')
+        self.face_cascade = cv2.CascadeClassifier('data/face.xml')
         self.add_widget(self.img_reader)
         Clock.schedule_interval(self.update, 1.0 / fps)
 
@@ -211,5 +207,14 @@ class Main(App, BoxLayout):
         self.capture.release()
 
 
+def resourcePath():
+    '''Returns path containing content - either locally or in pyinstaller tmp file'''
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS)
+
+    return os.path.join(os.path.abspath("."))
+
+
 if __name__ == '__main__':
-    Main().run()
+    kivy.resources.resource_add_path(resourcePath())
+    my_app = Main().run()
