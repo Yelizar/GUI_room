@@ -195,12 +195,10 @@ class Screen(Image):
 
 class Main(App, BoxLayout):
 
-
     def build(self):
         self.capture = cv2.VideoCapture(0)
         self.my_camera = Screen(capture=self.capture, fps=30)
         return self.my_camera
-
 
     def on_stop(self):
         #without this, app will not exit even if the window is closed
