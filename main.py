@@ -11,6 +11,9 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 
 from img_reader import ImgReader
+from cascade import Cascade
+from processing import Processing
+
 import cv2
 import os, sys
 
@@ -20,6 +23,8 @@ class Screen(Image, BoxLayout):
     def __init__(self, capture, fps, **kwargs):
         super(Screen, self).__init__(**kwargs)
         self.img_reader = ImgReader()
+        self.cascade = Cascade()
+        self.processing = Processing()
         # ^Button PREVIOUS
         self.previous = Button(text='Previous',
                                pos=(0, 260),
@@ -44,9 +49,6 @@ class Screen(Image, BoxLayout):
         self.crt_image = self.img_reader.crt_image
         self.prc_crt_image = None
         self.capture = capture
-        self.face_cascade = cv2.CascadeClassifier('data/face.xml')
-        self.eyes_cascade = cv2.CascadeClassifier('data/eyes.xml')
-
         Clock.schedule_interval(self.update, 1.0 / fps)
 
     def img_verification(self):
@@ -65,49 +67,19 @@ class Screen(Image, BoxLayout):
             self.prc_crt_image = self.img_reader.img_read(self.crt_image)
         return self.prc_crt_image
 
-    def resize_image(self, image, width, height):
-        """This method returns modified image with the size of the face """
-        modified_image = cv2.resize(image, dsize=(width, height))
-        return modified_image
 
-    def masks_of_image(self, image_gray):
-        """This method convert image from RGB to GRAY and return mask and inversion of the image"""
-        ret, mask = cv2.threshold(image_gray, 0, 254, cv2.THRESH_BINARY)
-        mask_inv = cv2.bitwise_not(mask)
-        return mask, mask_inv
 
     def update(self, dt):
         """processing video frames"""
         ret, frame = self.capture.read()
+        image = self.img_verification()
         if ret:
             # convert bgr frame into gray
             frame_gray = self.img_reader.cvt_gray(frame)
             # detect face in gray frame
-            face = self.face_cascade.detectMultiScale(frame_gray, 1.3, 5)
-            for (x, y, w, h) in face:
-                #cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 255, 0), 2)
-                #cut face from the frame for further work
-                cuted_face = frame[y+75:y+(h//2),x+20:x+w-20]
-                cuted_face_gray = self.img_reader.cvt_gray(cuted_face)
-                eyes = self.eyes_cascade.detectMultiScale(cuted_face_gray, 1.3, 5)
-                if len(eyes) == 2:
-                    for (xe, ye, we, he) in eyes:
-                        cv2.rectangle(cuted_face, (xe, ye), (xe+we, ye+he), (233,133,233), 2)
-
-                image = self.img_verification()
-                #resize image in accordance with the size of the face
-                image = self.resize_image(image, w-40, h//2-75)
-
-                #create mask and inversion mask of the image
-                image_gray = self.img_reader.cvt_gray(image)
-                mask, mask_inv = self.masks_of_image(image_gray)
-
-                #add image to frame
-                frame_bg = cv2.bitwise_and(cuted_face, cuted_face, mask=mask)
-                image_fg = cv2.bitwise_and(image, image, mask=mask_inv)
-                image = cv2.add(frame_bg, image_fg)
-                frame[y+75:y+(h//2), x+20:x + w-20] = image
-
+            face = self.cascade.face(frame_gray)
+            # processing - return final image
+            frame = self.processing.processing(frame, face, image)
             # convert it to texture
             buf1 = cv2.flip(frame, -1)
             buf = buf1.tostring()
