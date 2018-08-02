@@ -127,6 +127,7 @@ class Screen(Image):
         self.prc_crt_image = None
         self.capture = capture
         self.face_cascade = cv2.CascadeClassifier('data/face.xml')
+        self.eyes_cascade = cv2.CascadeClassifier('data/eyes.xml')
         self.add_widget(self.img_reader)
         Clock.schedule_interval(self.update, 1.0 / fps)
 
@@ -164,12 +165,17 @@ class Screen(Image):
             # convert bgr frame into gray
             frame_gray = self.img_reader.cvt_gray(frame)
             # detect face in gray frame
-            self.face = self.face_cascade.detectMultiScale(frame_gray, 1.3, 5)
-
-            for (x, y, w, h) in self.face:
+            face = self.face_cascade.detectMultiScale(frame_gray, 1.3, 5)
+            for (x, y, w, h) in face:
                 #cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 255, 0), 2)
                 #cut face from the frame for further work
                 cuted_face = frame[y+75:y+(h//2),x+20:x+w-20]
+                cuted_face_gray = self.img_reader.cvt_gray(cuted_face)
+                eyes = self.eyes_cascade.detectMultiScale(cuted_face_gray, 1.3, 5)
+                if len(eyes) == 2:
+                    for (xe, ye, we, he) in eyes:
+                        cv2.rectangle(cuted_face, (xe, ye), (xe+we, ye+he), (233,133,233), 2)
+
                 image = self.img_verification()
                 #resize image in accordance with the size of the face
                 image = self.resize_image(image, w-40, h//2-75)
