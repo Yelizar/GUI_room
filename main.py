@@ -10,9 +10,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 
 from img_reader import ImgReader
-from cascade import Cascade
-from moduls import cvt_gray
-from processing import processing
+from processing import PostPrc
 
 import cv2
 import os
@@ -25,7 +23,7 @@ class Screen(Image, BoxLayout):
         super(Screen, self).__init__(**kwargs)
         # Connecting Modules
         self.img_reader = ImgReader()
-        self.cascade = Cascade()
+        self.post_prc = PostPrc()
         self.buttons()
         # Definition of dynamic variables
         self.crt_image = self.img_reader.crt_image
@@ -73,12 +71,8 @@ class Screen(Image, BoxLayout):
         ret, frame = self.capture.read()
         image = self.img_verification()
         if ret:     # If the frame is actually received
-            # convert color frame into gray
-            frame_gray = cvt_gray(frame)
-            # detect face in gray frame
-            face = self.cascade.face(frame_gray)                # SHOULD BE CHANGED (Cascade - FACE, EYE, BODY)
             # processing - return final image
-            frame = processing(frame, face, image)
+            frame = self.post_prc.processing(frame, image)
             # convert it into texture
             buf1 = cv2.flip(frame, -1)
             buf = buf1.tostring()

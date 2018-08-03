@@ -48,14 +48,3 @@ def cvt_gray(image):
     return gray
 
 
-def resize_image(image, width, height):
-    """This function returns modified image with the size of the face """
-    modified_image = cv2.resize(image, dsize=(width, height))
-    return modified_image
-
-
-def masks_of_image(image_gray):
-    """This function convert image from RGB to GRAY and return mask and inversion of the image"""
-    ret, mask = cv2.threshold(image_gray, 0, 254, cv2.THRESH_BINARY)
-    mask_inv = cv2.bitwise_not(mask)
-    return mask, mask_inv
