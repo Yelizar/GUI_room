@@ -9,7 +9,6 @@ class Cascade():
 
     def face(self, frame_gray):
         face = self.face_cascade.detectMultiScale(frame_gray, 1.3, 5)
-
         return face
 
 
