@@ -28,11 +28,11 @@ class PostPrc:
         if self.prv_position_cascade is not None and \
                 self.prv_position_cascade.shape == self.crt_position_cascade.shape:
             diff = self.crt_position_cascade - self.prv_position_cascade
-            if (abs(max(diff[0]))) < 4:
+            if (abs(max(diff[0]))) == 1:
                 self.crt_position_cascade = self.prv_position_cascade
 
     def face(self, frame_gray):
-        face = self.face_cascade.detectMultiScale(frame_gray, 1.3, 5)
+        face = self.face_cascade.detectMultiScale(frame_gray, scaleFactor=1.02, minNeighbors=10, minSize=(150, 150))
         return face
 
     def processing(self, frame, image):
@@ -41,6 +41,7 @@ class PostPrc:
         self.crt_position_cascade = np.array(self.face(frame_gray))
         self.cascade_verification()
         for (x, y, w, h) in self.crt_position_cascade:
+            print(x, y, w, h)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 255, 0), 2)
             # cut face from the frame for further work
             cuted_face = frame[y + 75:y + (h // 2), x + 20:x + w - 20]
