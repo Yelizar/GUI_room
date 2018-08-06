@@ -39,6 +39,7 @@ def png_reader(image):
         # Create alpha channel for RGB/BGR image. once Alpha channel created, use it for alpha factor.
         alpha_cnl = np.ones(image.shape, dtype=np.uint8) * 255
         base = image.astype(np.float32) / alpha_cnl
+
         return base.astype(np.uint8)
 
 

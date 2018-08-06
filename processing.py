@@ -19,27 +19,11 @@ def masks_of_image(image_gray):
     return mask, mask_inv
 
 
-def imcrop(img, x1, y1, x2, y2):
-
-    if x1 < 0 or y1 < 0 or x2 > img.shape[1] or y2 > img.shape[0]:
-        img, x1, x2, y1, y2 = pad_img_to_fit_bbox(img, x1, x2, y1, y2)
-    return img[y1:y2, x1:x2, :]
-
-
-def pad_img_to_fit_bbox(img, x1, x2, y1, y2):
-    img = np.pad(img, ((np.abs(np.minimum(0, y1)), np.maximum(y2 - img.shape[0], 0)),
-                       (np.abs(np.minimum(0, x1)), np.maximum(x2 - img.shape[1], 0)), (0, 0)), mode="constant")
-    y1 += np.abs(np.minimum(0, y1))
-    y2 += np.abs(np.minimum(0, y1))
-    x1 += np.abs(np.minimum(0, x1))
-    x2 += np.abs(np.minimum(0, x1))
-    return img, x1, x2, y1, y2
-
 class PostPrc:
     def __init__(self):
         self.face_cascade = cv2.CascadeClassifier('data/face.xml')
         self.eyes_cascade = cv2.CascadeClassifier('data/eyes.xml')
-        self.angle = 45
+        self.angle = 5
         self.image = None
         self.crt_position_cascade = None
         self.prv_position_cascade = None
@@ -55,8 +39,8 @@ class PostPrc:
         obj = self.face_cascade.detectMultiScale(frame_gray, scaleFactor=1.02, minNeighbors=10, minSize=(150, 150))
         return obj
 
-    def rotation(self, x, y, w, h):
-
+    def rotation(self):
+        """
         self.x_1 = x * (math.cos(self.angle)) - y * (math.sin(self.angle))
         self.y_1 = x * (math.cos(self.angle)) + y * (math.sin(self.angle))
         self.x_2 = (x + w) * (math.cos(self.angle)) - y * (math.sin(self.angle))
@@ -67,12 +51,17 @@ class PostPrc:
         self.y_4 = (x + w) * (math.cos(self.angle)) + (y + h) * (math.sin(self.angle))
         pts1 = np.float32([[x, y], [x + w, y], [x, y + h]])
         pts2 = np.float32([[self.x_1, self.y_1], [self.x_2, self.y_2], [self.x_3, self.y_3]])
-
         M = cv2.getAffineTransform(pts1, pts2)
+        """
         rows, cols, _ = self.image.shape
         rot = cv2.getRotationMatrix2D((((rows / 2),(cols / 2))), self.angle, 1)
-        dst = cv2.warpAffine(self.image, M, (cols, rows), flags=cv2.INTER_LINEAR)
-        print(dst)
+        dst = cv2.warpAffine(self.image, rot, (cols, rows), flags=cv2.INTER_LINEAR)
+        return dst
+
+    def qwe(self, image):
+        rows, cols, _ = image.shape
+        rot = cv2.getRotationMatrix2D((((rows / 2), (cols / 2))), 0, 1)
+        dst = cv2.warpAffine(image, rot, (cols, rows), flags=cv2.INTER_LINEAR)
         return dst
 
     def processing(self, frame, image):
@@ -89,17 +78,21 @@ class PostPrc:
             # resize image in accordance with the size of the face
 
             self.image = resize_image(image, w, h)
-            self.image = self.rotation(x, y, w, h)
+            img = self.image
+            self.image = self.rotation()
+            # cuted_face = self.qwe(cuted_face)
             # create mask and inversion mask of the image
             image_gray = cvt_gray(self.image)
             mask, mask_inv = masks_of_image(image_gray)
-            print(self.image.shape)
+
 
             # add image to frame
             frame_bg = cv2.bitwise_and(cuted_face, cuted_face, mask=mask)
             image_fg = cv2.bitwise_and(self.image, self.image, mask=mask_inv)
             self.image = cv2.add(frame_bg, image_fg)
+
             frame[y:y + h, x:x + w] = self.image
+
             self.prv_position_cascade = self.crt_position_cascade
 
         return frame
