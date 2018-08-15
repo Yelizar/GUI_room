@@ -23,7 +23,7 @@ class PostPrc:
     def __init__(self):
         self.face_cascade = cv2.CascadeClassifier('data/face.xml')
         self.eyes_cascade = cv2.CascadeClassifier('data/eyes.xml')
-        self.angle = 5
+        self.angle = 15
         self.image = None
         self.crt_position_cascade = None
         self.prv_position_cascade = None
@@ -35,8 +35,8 @@ class PostPrc:
             if (abs(max(diff[0]))) == 1:
                 self.crt_position_cascade = self.prv_position_cascade
 
-    def cut_obj(self, frame_gray):
-        obj = self.face_cascade.detectMultiScale(frame_gray, scaleFactor=1.02, minNeighbors=10, minSize=(150, 150))
+    def cut_obj(self, frame_gray, factor, _min):
+        obj = self.face_cascade.detectMultiScale(frame_gray, scaleFactor=factor, minNeighbors=10, minSize=(_min, _min))
         return obj
 
     def rotation(self):
@@ -58,34 +58,25 @@ class PostPrc:
         dst = cv2.warpAffine(self.image, rot, (cols, rows), flags=cv2.INTER_LINEAR)
         return dst
 
-    def qwe(self, image):
-        rows, cols, _ = image.shape
-        rot = cv2.getRotationMatrix2D((((rows / 2), (cols / 2))), 0, 1)
-        dst = cv2.warpAffine(image, rot, (cols, rows), flags=cv2.INTER_LINEAR)
-        return dst
-
     def processing(self, frame, image):
         """The function processed the data(Frame, the cascade and an image) and has to return a frame"""
         frame_gray = cvt_gray(frame)
-        self.crt_position_cascade = np.array(self.cut_obj(frame_gray))
+        self.crt_position_cascade = np.array(self.cut_obj(frame_gray, 1.02, 150))
         self.cascade_verification()
         for (x, y, w, h) in self.crt_position_cascade:
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
             # cut face from the frame for further work
             cuted_face = frame[y:y + h, x:x + w]
-            # eyes = np.array((self.cut_obj(cuted_face)))
-            # for (x_eye, y_eye, w_eye, h_eye) in eyes:
-            #     print(x_eye, y_eye, w_eye, h_eye)
+            eyes = self.cut_obj(cuted_face, 1.1, 30)
+            for eye in eyes:
+                print(eyes[0], eyes[1])
             # resize image in accordance with the size of the face
 
             self.image = resize_image(image, w, h)
-            img = self.image
             self.image = self.rotation()
-            # cuted_face = self.qwe(cuted_face)
             # create mask and inversion mask of the image
             image_gray = cvt_gray(self.image)
             mask, mask_inv = masks_of_image(image_gray)
-
-
             # add image to frame
             frame_bg = cv2.bitwise_and(cuted_face, cuted_face, mask=mask)
             image_fg = cv2.bitwise_and(self.image, self.image, mask=mask_inv)
@@ -96,3 +87,33 @@ class PostPrc:
             self.prv_position_cascade = self.crt_position_cascade
 
         return frame
+
+    # def processing(self, frame, image):
+    #     """The function processed the data(Frame, the cascade and an image) and has to return a frame"""
+    #     eyes = self.eyes_cascade.detectMultiScale(frame, scaleFactor=1.1, minNeighbors=20, minSize=(30, 30),
+    #                                               maxSize=(75, 75))
+    #     counter = 0
+    #     for eye in eyes:
+    #         ex, ey, ew, eh = eye
+    #         cv2.rectangle(frame, (ex, ey), (ex + ew, ey + eh), (0, 255, 0), 2)
+    #         # base = frame[ey:ey + eh, ex:ex + ew]
+    #         # self.image = resize_image(image, ew, eh)
+    #         # self.image = self.rotation()
+    #         # # create mask and inversion mask of the image
+    #         # image_gray = cvt_gray(self.image)
+    #         # mask, mask_inv = masks_of_image(image_gray)
+    #         # # add image to frame
+    #         # frame_bg = cv2.bitwise_and(base, base, mask=mask)
+    #         # image_fg = cv2.bitwise_and(self.image, self.image, mask=mask_inv)
+    #         # self.image = cv2.add(frame_bg, image_fg)
+    #         #
+    #         # frame[ey:ey + eh, ex:ex + ew] = self.image
+    #         #
+    #         # self.prv_position_cascade = self.crt_position_cascade
+    #
+    #         if counter == 0 and len(eyes) == 2:
+    #             counter += 1
+    #             ex_1, ey_1, ew_1, eh_1 = ex, ey, ew, eh
+    #         elif counter == 1 and len(eyes) == 2: counter = 0
+    #
+    #     return frame
