@@ -62,14 +62,19 @@ class PostPrc:
         """The function processed the data(Frame, the cascade and an image) and has to return a frame"""
         frame_gray = cvt_gray(frame)
         self.crt_position_cascade = np.array(self.cut_obj(frame_gray, 1.02, 150))
+        eyes = self.eyes_cascade.detectMultiScale(frame, scaleFactor=1.1, minNeighbors=20, minSize=(30, 30),
+                                                                                                    maxSize=(75, 75))
         self.cascade_verification()
         for (x, y, w, h) in self.crt_position_cascade:
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
             # cut face from the frame for further work
             cuted_face = frame[y:y + h, x:x + w]
-            eyes = self.cut_obj(cuted_face, 1.1, 30)
-            for eye in eyes:
-                print(eyes[0], eyes[1])
+
+            if eyes:
+                print(1)
+                ex, ey, ew, eh = eyes[0]
+                ex_1, ey_1, ew_1, eh_1 = eyes[1]
+                print(2)
             # resize image in accordance with the size of the face
 
             self.image = resize_image(image, w, h)
