@@ -23,7 +23,7 @@ class PostPrc:
     def __init__(self):
         self.face_cascade = cv2.CascadeClassifier('data/face.xml')
         self.eyes_cascade = cv2.CascadeClassifier('data/eyes.xml')
-        self.angle = 15
+        self.angle = 0
         self.image = None
         self.crt_position_cascade = None
         self.prv_position_cascade = None
@@ -66,23 +66,23 @@ class PostPrc:
         for (x, y, w, h) in self.crt_position_cascade:
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
             # cut face from the frame for further work
-            cuted_face = frame[y:y + h, x:x + w]
-            eyes = self.cut_obj(cuted_face, 1.1, 30)
+            face = frame[y:y + h-60, x:x + w]
+            eyes = self.cut_obj(face, 1.1, 30)
             for eye in eyes:
-                print(eyes[0], eyes[1])
+                print(eye)
             # resize image in accordance with the size of the face
 
-            self.image = resize_image(image, w, h)
+            self.image = resize_image(image, w, h-60)
             self.image = self.rotation()
             # create mask and inversion mask of the image
             image_gray = cvt_gray(self.image)
             mask, mask_inv = masks_of_image(image_gray)
             # add image to frame
-            frame_bg = cv2.bitwise_and(cuted_face, cuted_face, mask=mask)
+            frame_bg = cv2.bitwise_and(face, face, mask=mask)
             image_fg = cv2.bitwise_and(self.image, self.image, mask=mask_inv)
             self.image = cv2.add(frame_bg, image_fg)
 
-            frame[y:y + h, x:x + w] = self.image
+            frame[y:y + h-60, x:x + w] = self.image
 
             self.prv_position_cascade = self.crt_position_cascade
 
@@ -96,20 +96,20 @@ class PostPrc:
     #     for eye in eyes:
     #         ex, ey, ew, eh = eye
     #         cv2.rectangle(frame, (ex, ey), (ex + ew, ey + eh), (0, 255, 0), 2)
-    #         # base = frame[ey:ey + eh, ex:ex + ew]
-    #         # self.image = resize_image(image, ew, eh)
-    #         # self.image = self.rotation()
-    #         # # create mask and inversion mask of the image
-    #         # image_gray = cvt_gray(self.image)
-    #         # mask, mask_inv = masks_of_image(image_gray)
-    #         # # add image to frame
-    #         # frame_bg = cv2.bitwise_and(base, base, mask=mask)
-    #         # image_fg = cv2.bitwise_and(self.image, self.image, mask=mask_inv)
-    #         # self.image = cv2.add(frame_bg, image_fg)
-    #         #
-    #         # frame[ey:ey + eh, ex:ex + ew] = self.image
-    #         #
-    #         # self.prv_position_cascade = self.crt_position_cascade
+    #         base = frame[ey:ey + eh, ex:ex + ew]
+    #         self.image = resize_image(image, ew, eh)
+    #         self.image = self.rotation()
+    #         # create mask and inversion mask of the image
+    #         image_gray = cvt_gray(self.image)
+    #         mask, mask_inv = masks_of_image(image_gray)
+    #         # add image to frame
+    #         frame_bg = cv2.bitwise_and(base, base, mask=mask)
+    #         image_fg = cv2.bitwise_and(self.image, self.image, mask=mask_inv)
+    #         self.image = cv2.add(frame_bg, image_fg)
+    #
+    #         frame[ey:ey + eh, ex:ex + ew] = self.image
+    #
+    #         self.prv_position_cascade = self.crt_position_cascade
     #
     #         if counter == 0 and len(eyes) == 2:
     #             counter += 1

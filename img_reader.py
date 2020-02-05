@@ -10,9 +10,9 @@ class ImgReader:
         self.img_pack = find_img()
         self.point = 0
         self.crt_image = None
-        self.movement_point(None)
+        self.movement_point()
 
-    def movement_point(self, diff, *args):
+    def movement_point(self, diff=None, *args):
         """This method changes the index of the image being processed"""
         if diff:
             self.point += diff
@@ -30,7 +30,7 @@ class ImgReader:
             image = cv2.imread(str(rqs_img), cv2.IMREAD_UNCHANGED)
         else:
             image = cv2.imread(str(self.img_pack[0]), cv2.IMREAD_UNCHANGED)
-            self.crt_image = self.img_pack.index('.\\data\\glasses\\glasses_1.png')
+            self.crt_image = self.img_pack.index('./data/glasses/glasses_1.png')
         image = png_reader(image)
         return image
 

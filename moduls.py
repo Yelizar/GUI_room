@@ -6,11 +6,11 @@ import cv2
 def find_img():
     """create a list of images and return it"""
     # find right path to the folder with images
-    profect_dir = os.path.curdir
-    data = os.path.join(profect_dir, 'data')
+    project_dir = os.path.curdir
+    data = os.path.join(project_dir, 'data')
     glasses_dir = os.path.join(data, 'glasses')
     # format of path ---> current directory \ glasses folder \ image name
-    pack = [glasses_dir + '\\' + img for img in os.listdir(glasses_dir) \
+    pack = [glasses_dir + '/' + img for img in os.listdir(glasses_dir) \
             if os.path.isfile(os.path.join(glasses_dir, img))]
     return pack
 

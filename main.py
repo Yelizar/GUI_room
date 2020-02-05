@@ -68,9 +68,9 @@ class Screen(Image, BoxLayout):
 
     def update(self, dt):
         """processing video frames"""
-        ret, frame = self.capture.read()
+        _, frame = self.capture.read()
         image = self.img_verification()
-        if ret:     # If the frame is actually received
+        if _:     # If the frame is actually received
             # processing - return final image
             frame = self.post_prc.processing(frame, image)
             # convert it into texture
